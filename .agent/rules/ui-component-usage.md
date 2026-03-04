@@ -1,0 +1,38 @@
+---
+trigger: always_on
+---
+
+# Component Creation and Usage Rules
+
+## 1. Primary Component Library: Shadcn UI
+
+- **Always** prioritize using existing Shadcn UI components from `@/libs/components/ui`.
+- Do **not** create custom UI components if a Shadcn equivalent exists (e.g., use `Button` from ui/button, not a native
+  `<button>` with custom classes, unless necessary for semantic reasons not covered by the component).
+
+## 2. Installing New Components
+
+- If a required component is missing from `@/libs/components/ui`, install it using the CLI:
+  ```bash
+  npx shadcn@latest add [component-name]
+  ```
+- **Verify** the installation path matches the project structure (`src/libs/components/ui`).
+
+## 3. Customizing Components
+
+- Shadcn components are designed to be copied and modified.
+- Use `cn()` (className helper) to merge custom Tailwind classes with default component styles.
+  ```tsx
+  <Button className="bg-custom-color hover:bg-custom-color/90">Click me</Button>
+  ```
+- If a component needs significant logical changes, consider wrapping it or extending it rather than breaking the
+  original file if possible, or modify it carefully understanding it might diverge from the upstream.
+
+## 4. Iconography
+
+- Use `lucide-react` for icons, as it is the standard for Shadcn UI.
+
+## 5. Directory Structure
+
+- All shared UI components must reside in `src/libs/components/ui`.
+- Feature-specific components should reside in `src/features/[feature]/components`.
