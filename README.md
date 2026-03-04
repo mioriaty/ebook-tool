@@ -1,25 +1,34 @@
 # Ebook Tool
 
-A Calibre-like web application built with Next.js for managing, reading, editing, and converting EPUB files.
+A Calibre-like web application built with Next.js for managing, reading, editing, and converting EPUB files. Manage an entire EPUB library from your browser.
 
 ## Features
 
-### 1. EPUB Reader
+### 1. Library Management
 
-- Upload EPUB files via drag-and-drop or file picker
+- Upload multiple EPUB files at once via drag-and-drop or file picker
+- Persistent library stored on disk (survives page refresh)
+- Grid dashboard displaying all books with title, author, language, chapter count, and upload date
+- Quick actions per book: Read, Edit Metadata, Edit Chapters, Convert, Spell Check
+- Context menu with full action list and delete option
+- Switch between books instantly via the sidebar dropdown
+- Remove books from the library
+
+### 2. EPUB Reader
+
 - Render and read EPUB directly in the browser
 - Navigate between chapters
 - Adjust font size (zoom in/out)
 - Responsive reading experience
 
-### 2. Metadata Editor
+### 3. Metadata Editor
 
 - View and edit book metadata: title, author(s), language, publisher, date, description, subjects, rights
 - View, replace, or add cover image
 - Save changes back to the EPUB file
 - Download the modified EPUB
 
-### 3. Chapter Editor
+### 4. Chapter Editor
 
 - Browse all chapters via a sidebar navigator
 - Edit chapter content using a rich text editor (TipTap) with toolbar support:
@@ -33,7 +42,7 @@ A Calibre-like web application built with Next.js for managing, reading, editing
 - Download the modified EPUB
 - Keyboard shortcut: `Ctrl+S` / `Cmd+S` to save
 
-### 4. Format Converter
+### 5. Format Converter
 
 - Convert EPUB to other formats using Calibre CLI:
   - AZW3 (Kindle)
@@ -45,7 +54,7 @@ A Calibre-like web application built with Next.js for managing, reading, editing
 - Configure conversion options: base font size, margins
 - Auto-download converted file
 
-### 5. Spell Checker
+### 6. Spell Checker
 
 - Check spelling across all chapters
 - Support for English and Vietnamese
@@ -88,7 +97,7 @@ src/
 │   ├── spell-checker/
 │   └── shared/
 ├── libs/
-│   ├── epub/                # EPUB parser & session store
+│   ├── epub/                # EPUB parser, session store & library persistence
 │   └── api/                 # HTTP fetch client
 ├── shared/types/            # Shared TypeScript types
 └── app/                     # Next.js pages & API routes
@@ -123,6 +132,8 @@ Open [http://localhost:8386](http://localhost:8386) in your browser.
 
 | Route | Method | Description |
 |-------|--------|-------------|
+| `/api/epub/library` | GET | List all books in the library |
+| `/api/epub/library` | DELETE | Remove a book from the library |
 | `/api/epub/upload` | POST | Upload and parse an EPUB file |
 | `/api/epub/[id]/metadata` | GET | Get book metadata and chapter list |
 | `/api/epub/[id]/metadata` | PUT | Update metadata or cover image |

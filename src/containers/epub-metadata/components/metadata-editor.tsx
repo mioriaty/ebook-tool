@@ -57,7 +57,7 @@ export function MetadataEditor() {
 
   const handleDownload = () => {
     const a = document.createElement("a");
-    a.href = `/api/epub/${currentBook.sessionId}/download`;
+    a.href = `/api/epub/${currentBook.sessionId}/download?download=true`;
     a.download = `${currentBook.metadata.title || "book"}.epub`;
     a.click();
   };

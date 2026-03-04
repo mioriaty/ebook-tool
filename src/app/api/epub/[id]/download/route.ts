@@ -1,11 +1,12 @@
-import { NextResponse } from "next/server";
-import { loadEpubParser, sessionExists } from "@/libs/epub/session-store";
+import { NextRequest, NextResponse } from "next/server";
+import fs from "fs/promises";
+import { getEpubPath, sessionExists } from "@/libs/epub/session-store";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
 }
 
-export async function GET(_request: Request, { params }: RouteParams) {
+export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const { id: sessionId } = await params;
 
@@ -16,16 +17,24 @@ export async function GET(_request: Request, { params }: RouteParams) {
       );
     }
 
-    const parser = await loadEpubParser(sessionId);
-    const buffer = await parser.toBuffer();
-    const uint8 = new Uint8Array(buffer);
+    const filePath = getEpubPath(sessionId);
+    const fileBuffer = await fs.readFile(filePath);
+    const uint8 = new Uint8Array(fileBuffer);
 
-    return new NextResponse(uint8, {
-      headers: {
-        "Content-Type": "application/epub+zip",
-        "Content-Disposition": `attachment; filename="book-${sessionId.slice(0, 8)}.epub"`,
-      },
-    });
+    const url = new URL(request.url);
+    const isDownload = url.searchParams.get("download") === "true";
+
+    const headers: Record<string, string> = {
+      "Content-Type": "application/epub+zip",
+      "Content-Length": String(uint8.byteLength),
+    };
+
+    if (isDownload) {
+      headers["Content-Disposition"] =
+        `attachment; filename="book-${sessionId.slice(0, 8)}.epub"`;
+    }
+
+    return new NextResponse(uint8, { headers });
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Failed to download";

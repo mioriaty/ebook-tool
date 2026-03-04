@@ -3,6 +3,7 @@ import {
   loadEpubParser,
   saveEpubFromParser,
   sessionExists,
+  updateLibraryEntry,
 } from "@/libs/epub/session-store";
 
 interface RouteParams {
@@ -77,6 +78,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         await parser.setCoverImage(imageBuffer, coverFile.type);
         await saveEpubFromParser(sessionId, parser);
         const metadata = parser.getMetadata(sessionId);
+        await updateLibraryEntry(sessionId, { metadata });
         return NextResponse.json(metadata);
       }
     }
@@ -86,6 +88,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     parser.updateMetadata(updates);
     await saveEpubFromParser(sessionId, parser);
     const metadata = parser.getMetadata(sessionId);
+    await updateLibraryEntry(sessionId, { metadata });
     return NextResponse.json(metadata);
   } catch (error) {
     const message =

@@ -1,8 +1,10 @@
 import fs from "fs/promises";
 import path from "path";
 import { EpubParser } from "./epub-parser";
+import type { EpubFile } from "@/shared/types/epub";
 
 const BASE_DIR = path.join(process.cwd(), "tmp", "ebook-sessions");
+const LIBRARY_PATH = path.join(BASE_DIR, "library.json");
 
 async function ensureDir(dir: string): Promise<void> {
   await fs.mkdir(dir, { recursive: true });
@@ -61,4 +63,49 @@ export async function listSessions(): Promise<string[]> {
   await ensureDir(BASE_DIR);
   const entries = await fs.readdir(BASE_DIR, { withFileTypes: true });
   return entries.filter((e) => e.isDirectory()).map((e) => e.name);
+}
+
+export async function getLibrary(): Promise<EpubFile[]> {
+  await ensureDir(BASE_DIR);
+  try {
+    const data = await fs.readFile(LIBRARY_PATH, "utf-8");
+    return JSON.parse(data) as EpubFile[];
+  } catch {
+    return [];
+  }
+}
+
+async function saveLibrary(library: EpubFile[]): Promise<void> {
+  await ensureDir(BASE_DIR);
+  await fs.writeFile(LIBRARY_PATH, JSON.stringify(library, null, 2));
+}
+
+export async function addToLibrary(entry: EpubFile): Promise<void> {
+  const library = await getLibrary();
+  const existing = library.findIndex((b) => b.sessionId === entry.sessionId);
+  if (existing >= 0) {
+    library[existing] = entry;
+  } else {
+    library.push(entry);
+  }
+  await saveLibrary(library);
+}
+
+export async function removeFromLibrary(sessionId: string): Promise<void> {
+  const library = await getLibrary();
+  const filtered = library.filter((b) => b.sessionId !== sessionId);
+  await saveLibrary(filtered);
+  await deleteSession(sessionId);
+}
+
+export async function updateLibraryEntry(
+  sessionId: string,
+  updates: Partial<EpubFile>
+): Promise<void> {
+  const library = await getLibrary();
+  const index = library.findIndex((b) => b.sessionId === sessionId);
+  if (index >= 0) {
+    library[index] = { ...library[index], ...updates, sessionId };
+    await saveLibrary(library);
+  }
 }

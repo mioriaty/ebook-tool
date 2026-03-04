@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
 import { EpubParser } from "@/libs/epub/epub-parser";
-import { saveEpub } from "@/libs/epub/session-store";
+import { saveEpub, addToLibrary } from "@/libs/epub/session-store";
 import type { EpubFile } from "@/shared/types/epub";
 
 export async function POST(request: NextRequest) {
@@ -38,7 +38,10 @@ export async function POST(request: NextRequest) {
       metadata,
       chapters,
       toc,
+      addedAt: new Date().toISOString(),
     };
+
+    await addToLibrary(epubFile);
 
     return NextResponse.json(epubFile);
   } catch (error) {

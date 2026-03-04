@@ -45,7 +45,7 @@ export function ChapterEditorView() {
   const handleDownload = () => {
     if (!currentBook) return;
     const a = document.createElement("a");
-    a.href = `/api/epub/${currentBook.sessionId}/download`;
+    a.href = `/api/epub/${currentBook.sessionId}/download?download=true`;
     a.download = `${currentBook.metadata.title || "book"}.epub`;
     a.click();
   };

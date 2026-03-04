@@ -10,7 +10,7 @@ export function useUploadEpub() {
   return useMutation<EpubFile, Error, File>({
     mutationFn: (file: File) => uploadEpubUseCase.execute(file),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["epub-sessions"] });
+      queryClient.invalidateQueries({ queryKey: ["epub-library"] });
     },
   });
 }

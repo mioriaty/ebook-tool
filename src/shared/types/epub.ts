@@ -43,6 +43,7 @@ export interface EpubFile {
   metadata: EpubMetadata;
   chapters: EpubChapter[];
   toc: EpubToc[];
+  addedAt: string;
 }
 
 export interface ConvertOptions {
