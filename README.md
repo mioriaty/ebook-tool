@@ -1,37 +1,134 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Ebook Tool
+
+A Calibre-like web application built with Next.js for managing, reading, editing, and converting EPUB files.
+
+## Features
+
+### 1. EPUB Reader
+
+- Upload EPUB files via drag-and-drop or file picker
+- Render and read EPUB directly in the browser
+- Navigate between chapters
+- Adjust font size (zoom in/out)
+- Responsive reading experience
+
+### 2. Metadata Editor
+
+- View and edit book metadata: title, author(s), language, publisher, date, description, subjects, rights
+- View, replace, or add cover image
+- Save changes back to the EPUB file
+- Download the modified EPUB
+
+### 3. Chapter Editor
+
+- Browse all chapters via a sidebar navigator
+- Edit chapter content using a rich text editor (TipTap) with toolbar support:
+  - Bold, Italic, Underline, Strikethrough, Code
+  - Headings (H1, H2, H3)
+  - Bullet list, Ordered list, Blockquote, Horizontal rule
+  - Text alignment (left, center, right)
+  - Insert links and images
+  - Undo / Redo
+- Save edited chapters back to the EPUB
+- Download the modified EPUB
+- Keyboard shortcut: `Ctrl+S` / `Cmd+S` to save
+
+### 4. Format Converter
+
+- Convert EPUB to other formats using Calibre CLI:
+  - AZW3 (Kindle)
+  - MOBI (Kindle Legacy)
+  - PDF
+  - DOCX (Word)
+  - Plain Text
+  - HTML (Zipped)
+- Configure conversion options: base font size, margins
+- Auto-download converted file
+
+### 5. Spell Checker
+
+- Check spelling across all chapters
+- Support for English and Vietnamese
+- Auto-detect language from EPUB metadata
+- Display misspelled words with context
+- Show spelling suggestions for each error
+- Results grouped by chapter
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Framework | Next.js 16 (App Router, Turbopack) |
+| UI | Shadcn UI, Radix UI, Tailwind CSS |
+| EPUB Rendering | epubjs, react-reader |
+| EPUB Parsing | JSZip, fast-xml-parser |
+| Rich Text Editor | TipTap (ProseMirror) |
+| Format Conversion | Calibre CLI (`ebook-convert`) |
+| Spell Check | typo-js (Hunspell dictionaries) |
+| Data Fetching | TanStack Query |
+| State Management | React Context, nuqs |
+
+## Architecture
+
+The project follows **Clean Architecture** with a feature-first organization:
+
+```
+src/
+├── core/                    # Business logic (domain + use cases + factories)
+│   ├── epub-reader/
+│   ├── epub-metadata/
+│   ├── epub-editor/
+│   ├── epub-converter/
+│   └── spell-checker/
+├── containers/              # UI + Infrastructure (components, hooks, repo impls)
+│   ├── epub-reader/
+│   ├── epub-metadata/
+│   ├── epub-editor/
+│   ├── epub-converter/
+│   ├── spell-checker/
+│   └── shared/
+├── libs/
+│   ├── epub/                # EPUB parser & session store
+│   └── api/                 # HTTP fetch client
+├── shared/types/            # Shared TypeScript types
+└── app/                     # Next.js pages & API routes
+```
+
+## Prerequisites
+
+- **Node.js** >= 18
+- **Calibre** (required for format conversion only)
+
+```bash
+# macOS
+brew install calibre
+
+# Ubuntu/Debian
+sudo apt install calibre
+```
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+# Install dependencies
+pnpm install
+
+# Run development server
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:8386](http://localhost:8386) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## API Routes
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-# ebook-tool
+| Route | Method | Description |
+|-------|--------|-------------|
+| `/api/epub/upload` | POST | Upload and parse an EPUB file |
+| `/api/epub/[id]/metadata` | GET | Get book metadata and chapter list |
+| `/api/epub/[id]/metadata` | PUT | Update metadata or cover image |
+| `/api/epub/[id]/chapters` | GET | List all chapters |
+| `/api/epub/[id]/chapters/[idx]` | GET | Get chapter content |
+| `/api/epub/[id]/chapters/[idx]` | PUT | Update chapter content |
+| `/api/epub/[id]/download` | GET | Download the EPUB file |
+| `/api/epub/[id]/convert` | POST | Convert to another format |
+| `/api/epub/[id]/spellcheck` | POST | Run spell check |
