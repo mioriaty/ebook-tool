@@ -5,6 +5,11 @@ const nextConfig: NextConfig = {
     root: process.cwd(),
   },
   serverExternalPackages: ["typo-js"],
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "100mb",
+    },
+  },
 };
 
 export default nextConfig;
