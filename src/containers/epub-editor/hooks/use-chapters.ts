@@ -6,11 +6,22 @@ import {
   getEditorChapterContentUseCase,
   updateChapterUseCase,
 } from "@/core/epub-editor/factories/epub-editor.factory";
+import { fetchClient } from "@/libs/api/fetch-client";
+import type { EpubEditableFile } from "@/shared/types/epub";
 
 export function useChapters(sessionId: string | null) {
   return useQuery({
     queryKey: ["epub-chapters", sessionId],
     queryFn: () => getChaptersUseCase.execute(sessionId!),
+    enabled: !!sessionId,
+  });
+}
+
+export function useEditableFiles(sessionId: string | null) {
+  return useQuery({
+    queryKey: ["epub-editable-files", sessionId],
+    queryFn: () =>
+      fetchClient.get<EpubEditableFile[]>(`/api/epub/${sessionId}/files`),
     enabled: !!sessionId,
   });
 }

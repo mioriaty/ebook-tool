@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Ebook Tool - EPUB Manager",
+  title: "Ebook Tools",
   description:
     "Read, edit, convert, and manage EPUB files with a Calibre-like web interface",
 };

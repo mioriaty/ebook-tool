@@ -3,6 +3,7 @@ import { XMLParser, XMLBuilder } from "fast-xml-parser";
 import type {
   EpubMetadata,
   EpubChapter,
+  EpubEditableFile,
   EpubManifestItem,
   EpubSpineItem,
   EpubToc,
@@ -55,14 +56,14 @@ export class EpubParser {
 
     const parser = new XMLParser(XML_PARSE_OPTIONS);
     const container = parser.parse(containerXml);
-    const rootfile =
-      container.container?.rootfiles?.rootfile;
+    const rootfile = container.container?.rootfiles?.rootfile;
     const rootfileEntry = Array.isArray(rootfile) ? rootfile[0] : rootfile;
     this.opfPath = rootfileEntry?.["@_full-path"] || "";
     if (!this.opfPath) throw new Error("Invalid EPUB: cannot find OPF path");
 
     const lastSlash = this.opfPath.lastIndexOf("/");
-    this.opfDir = lastSlash >= 0 ? this.opfPath.substring(0, lastSlash + 1) : "";
+    this.opfDir =
+      lastSlash >= 0 ? this.opfPath.substring(0, lastSlash + 1) : "";
   }
 
   private async parseOpf(): Promise<void> {
@@ -74,12 +75,17 @@ export class EpubParser {
   }
 
   private getPackage(): Record<string, unknown> {
-    return (this.opfContent["package"] || this.opfContent["opf:package"] || {}) as Record<string, unknown>;
+    return (this.opfContent["package"] ||
+      this.opfContent["opf:package"] ||
+      {}) as Record<string, unknown>;
   }
 
   private getDcMetadata(): Record<string, unknown> {
     const pkg = this.getPackage();
-    const metadata = (pkg["metadata"] || pkg["opf:metadata"] || {}) as Record<string, unknown>;
+    const metadata = (pkg["metadata"] || pkg["opf:metadata"] || {}) as Record<
+      string,
+      unknown
+    >;
     return metadata;
   }
 
@@ -196,6 +202,32 @@ export class EpubParser {
       .filter((ch): ch is EpubChapter => ch !== null);
   }
 
+  getEditableFiles(): EpubEditableFile[] {
+    const EDITABLE_TYPES: Record<string, "xhtml" | "css" | "other"> = {
+      "application/xhtml+xml": "xhtml",
+      "text/html": "xhtml",
+      "text/css": "css",
+      "application/x-dtbncx+xml": "other",
+    };
+
+    const manifestItems = this.getManifestItems();
+
+    const files = manifestItems
+      .filter((item) => item.mediaType in EDITABLE_TYPES)
+      .map((item) => ({
+        id: item.id,
+        href: item.href,
+        title: item.href.split("/").pop() || item.id,
+        mediaType: item.mediaType,
+        category: EDITABLE_TYPES[item.mediaType],
+      }));
+
+    const order: Record<string, number> = { xhtml: 0, css: 1, other: 2 };
+    files.sort((a, b) => order[a.category] - order[b.category]);
+
+    return files;
+  }
+
   async getChapterContent(href: string): Promise<string> {
     const fullPath = this.opfDir + href;
     const content = await this.zip.file(fullPath)?.async("text");
@@ -227,11 +259,8 @@ export class EpubParser {
     return manifest?.mediaType || null;
   }
 
-  async setCoverImage(
-    imageBuffer: Buffer,
-    mediaType: string
-  ): Promise<void> {
-    let coverId = this.findCoverImageId();
+  async setCoverImage(imageBuffer: Buffer, mediaType: string): Promise<void> {
+    const coverId = this.findCoverImageId();
 
     if (coverId) {
       const manifest = this.getManifestItemById(coverId);
@@ -252,16 +281,22 @@ export class EpubParser {
 
   updateMetadata(updates: Partial<EpubMetadata>): void {
     const pkg = this.getPackage();
-    const metadata = (pkg["metadata"] || pkg["opf:metadata"] || {}) as Record<string, unknown>;
+    const metadata = (pkg["metadata"] || pkg["opf:metadata"] || {}) as Record<
+      string,
+      unknown
+    >;
 
     if (updates.title !== undefined) metadata["dc:title"] = updates.title;
     if (updates.creators !== undefined) {
       metadata["dc:creator"] = updates.creators.map((c) => ({ "#text": c }));
     }
-    if (updates.language !== undefined) metadata["dc:language"] = updates.language;
-    if (updates.publisher !== undefined) metadata["dc:publisher"] = updates.publisher;
+    if (updates.language !== undefined)
+      metadata["dc:language"] = updates.language;
+    if (updates.publisher !== undefined)
+      metadata["dc:publisher"] = updates.publisher;
     if (updates.date !== undefined) metadata["dc:date"] = updates.date;
-    if (updates.description !== undefined) metadata["dc:description"] = updates.description;
+    if (updates.description !== undefined)
+      metadata["dc:description"] = updates.description;
     if (updates.subjects !== undefined) {
       metadata["dc:subject"] = updates.subjects;
     }
@@ -366,9 +401,7 @@ export class EpubParser {
       return arr.map((point: Record<string, unknown>) => {
         const label =
           typeof point.navLabel === "object" && point.navLabel !== null
-            ? String(
-                (point.navLabel as Record<string, unknown>).text || ""
-              )
+            ? String((point.navLabel as Record<string, unknown>).text || "")
             : "";
         const content = point.content as Record<string, string> | undefined;
         return {

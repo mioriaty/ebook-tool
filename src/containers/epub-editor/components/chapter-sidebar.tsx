@@ -1,23 +1,43 @@
 "use client";
 
+import { useMemo } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { FileText, Loader2 } from "lucide-react";
-import { useChapters } from "../hooks/use-chapters";
-import type { EpubChapter } from "@/shared/types/epub";
+import { FileText, FileCode, File, Loader2 } from "lucide-react";
+import { useEditableFiles } from "../hooks/use-chapters";
+import type { EpubEditableFile } from "@/shared/types/epub";
 
 interface ChapterSidebarProps {
   sessionId: string;
-  selectedChapter: EpubChapter | null;
-  onSelectChapter: (chapter: EpubChapter) => void;
+  selectedFile: EpubEditableFile | null;
+  onSelectFile: (file: EpubEditableFile) => void;
 }
+
+const CATEGORY_CONFIG: Record<
+  string,
+  { label: string; icon: typeof FileText }
+> = {
+  xhtml: { label: "Text", icon: FileText },
+  css: { label: "Styles", icon: FileCode },
+  other: { label: "Other", icon: File },
+};
 
 export function ChapterSidebar({
   sessionId,
-  selectedChapter,
-  onSelectChapter,
+  selectedFile,
+  onSelectFile,
 }: ChapterSidebarProps) {
-  const { data: chapters, isLoading } = useChapters(sessionId);
+  const { data: files, isLoading } = useEditableFiles(sessionId);
+
+  const grouped = useMemo(() => {
+    if (!files) return {};
+    return files.reduce<Record<string, EpubEditableFile[]>>((acc, file) => {
+      const cat = file.category;
+      if (!acc[cat]) acc[cat] = [];
+      acc[cat].push(file);
+      return acc;
+    }, {});
+  }, [files]);
 
   if (isLoading) {
     return (
@@ -27,31 +47,44 @@ export function ChapterSidebar({
     );
   }
 
-  if (!chapters?.length) {
+  if (!files?.length) {
     return (
       <div className="text-center text-muted-foreground py-8 text-sm">
-        No chapters found
+        No editable files found
       </div>
     );
   }
 
+  const categories = ["xhtml", "css", "other"].filter((cat) => grouped[cat]);
+
   return (
-    <ScrollArea className="h-[calc(100vh-16rem)]">
-      <div className="space-y-1 p-2">
-        {chapters.map((chapter) => {
-          const isActive = selectedChapter?.href === chapter.href;
+    <ScrollArea className="h-full">
+      <div className="p-2 space-y-3">
+        {categories.map((cat) => {
+          const config = CATEGORY_CONFIG[cat];
+          const Icon = config.icon;
           return (
-            <Button
-              key={chapter.id}
-              variant={isActive ? "secondary" : "ghost"}
-              className="w-full justify-start text-left h-auto py-2 px-3"
-              onClick={() => onSelectChapter(chapter)}
-            >
-              <FileText className="h-4 w-4 mr-2 shrink-0" />
-              <span className="truncate text-sm">
-                {chapter.title || `Chapter ${chapter.order + 1}`}
-              </span>
-            </Button>
+            <div key={cat}>
+              <div className="px-2 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                {config.label}
+              </div>
+              <div className="space-y-0.5 mt-1">
+                {grouped[cat].map((file) => {
+                  const isActive = selectedFile?.href === file.href;
+                  return (
+                    <Button
+                      key={file.id}
+                      variant={isActive ? "secondary" : "ghost"}
+                      className="w-full justify-start text-left h-auto py-1.5 px-3"
+                      onClick={() => onSelectFile(file)}
+                    >
+                      <Icon className="h-3.5 w-3.5 mr-2 shrink-0" />
+                      <span className="truncate text-xs">{file.title}</span>
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
           );
         })}
       </div>

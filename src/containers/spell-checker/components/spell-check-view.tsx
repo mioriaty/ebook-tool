@@ -14,9 +14,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { SpellCheck, Loader2, AlertCircle } from "lucide-react";
+import { SpellCheck, Loader2, AlertCircle, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import type { SpellCheckResult } from "@/shared/types/epub";
+
+const MAX_UNIQUE_WORDS = 500;
+const MAX_RENDER_PER_CHAPTER = 100;
 
 const LANGUAGES = [
   { value: "en", label: "English" },
@@ -117,21 +120,29 @@ export function SpellCheckView() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <AlertCircle className="h-5 w-5 text-destructive" />
-              {results.length} Spelling Issues Found
+              {results.length} unique misspelled words found
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-3">
+            {results.length >= MAX_UNIQUE_WORDS && (
+              <div className="flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 rounded-md">
+                <AlertTriangle className="h-4 w-4 shrink-0" />
+                Showing first {MAX_UNIQUE_WORDS} unique words. Fix these and run again to see more.
+              </div>
+            )}
             <ScrollArea className="h-[60vh]">
               <div className="space-y-6">
-                {Object.entries(groupedResults).map(
-                  ([chapterTitle, issues]) => (
+                {Object.entries(groupedResults).map(([chapterTitle, issues]) => {
+                  const visible = issues.slice(0, MAX_RENDER_PER_CHAPTER);
+                  const hidden = issues.length - visible.length;
+                  return (
                     <div key={chapterTitle}>
                       <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
                         {chapterTitle}
                         <Badge variant="secondary">{issues.length}</Badge>
                       </h3>
                       <div className="space-y-2">
-                        {issues.map((issue, idx) => (
+                        {visible.map((issue, idx) => (
                           <div
                             key={`${issue.word}-${issue.offset}-${idx}`}
                             className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg"
@@ -162,10 +173,15 @@ export function SpellCheckView() {
                             </div>
                           </div>
                         ))}
+                        {hidden > 0 && (
+                          <p className="text-xs text-muted-foreground text-center py-2">
+                            +{hidden} more in this chapter
+                          </p>
+                        )}
                       </div>
                     </div>
-                  )
-                )}
+                  );
+                })}
               </div>
             </ScrollArea>
           </CardContent>

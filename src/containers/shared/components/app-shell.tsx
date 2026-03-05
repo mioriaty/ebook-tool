@@ -4,7 +4,11 @@ import type { ReactNode } from "react";
 import { QueryProvider } from "../providers/query-provider";
 import { EpubProvider } from "./epub-context";
 import { AppSidebar } from "./app-sidebar";
-import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import {
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -25,7 +29,7 @@ export function AppShell({ children }: AppShellProps) {
                 <SidebarTrigger className="-ml-1" />
                 <Separator orientation="vertical" className="mr-2 h-4" />
                 <span className="text-sm text-muted-foreground">
-                  Ebook Tool
+                  Ebook Tools
                 </span>
               </header>
               <main className="flex-1 p-6">{children}</main>

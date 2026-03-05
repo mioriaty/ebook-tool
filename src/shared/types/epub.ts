@@ -46,6 +46,14 @@ export interface EpubFile {
   addedAt: string;
 }
 
+export interface EpubEditableFile {
+  id: string;
+  href: string;
+  title: string;
+  mediaType: string;
+  category: "xhtml" | "css" | "other";
+}
+
 export interface ConvertOptions {
   outputFormat: string;
   fontSize?: number;

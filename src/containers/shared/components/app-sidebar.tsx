@@ -37,7 +37,12 @@ const NAV_ITEMS = [
   { href: "/metadata", label: "Metadata", icon: FileText, requiresBook: true },
   { href: "/editor", label: "Editor", icon: PenTool, requiresBook: true },
   { href: "/converter", label: "Convert", icon: RefreshCw, requiresBook: true },
-  { href: "/spellcheck", label: "Spell Check", icon: SpellCheck, requiresBook: true },
+  {
+    href: "/spellcheck",
+    label: "Spell Check",
+    icon: SpellCheck,
+    requiresBook: true,
+  },
 ];
 
 export function AppSidebar() {
@@ -56,7 +61,7 @@ export function AppSidebar() {
       <SidebarHeader className="border-b px-4 py-3">
         <Link href="/" className="flex items-center gap-2">
           <BookOpen className="h-6 w-6" />
-          <span className="font-semibold text-lg">Ebook Tool</span>
+          <span className="font-semibold text-lg">Ebook Tools</span>
         </Link>
       </SidebarHeader>
       <SidebarContent>
@@ -119,11 +124,7 @@ export function AppSidebar() {
                       asChild={!isDisabled}
                       isActive={isActive}
                       disabled={isDisabled}
-                      tooltip={
-                        isDisabled
-                          ? "Select a book first"
-                          : item.label
-                      }
+                      tooltip={isDisabled ? "Select a book first" : item.label}
                     >
                       {isDisabled ? (
                         <span className="opacity-50 flex items-center gap-2">

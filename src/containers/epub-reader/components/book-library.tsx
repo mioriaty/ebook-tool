@@ -250,6 +250,7 @@ function LibrarySkeleton() {
 }
 
 export function BookLibrary() {
+  "use no memo";
   const { library, isLibraryLoading } = useEpubContext();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
