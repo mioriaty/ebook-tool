@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
 import { EpubParser } from "@/libs/epub/epub-parser";
-import { saveEpub, addToLibrary } from "@/libs/epub/session-store";
+import { saveEpub, addToLibrary, cleanupExpiredSessions } from "@/libs/epub/session-store";
 import type { EpubFile } from "@/shared/types/epub";
 
 export async function POST(request: NextRequest) {
@@ -42,6 +42,9 @@ export async function POST(request: NextRequest) {
     };
 
     await addToLibrary(epubFile);
+
+    // Run cleanup in background, does not block response
+    cleanupExpiredSessions().catch(console.error);
 
     return NextResponse.json(epubFile);
   } catch (error) {

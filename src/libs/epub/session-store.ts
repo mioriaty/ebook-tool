@@ -5,6 +5,7 @@ import type { EpubFile } from "@/shared/types/epub";
 
 const BASE_DIR = path.join(process.cwd(), "tmp", "ebook-sessions");
 const LIBRARY_PATH = path.join(BASE_DIR, "library.json");
+const SESSION_TTL_DAYS = 30;
 
 async function ensureDir(dir: string): Promise<void> {
   await fs.mkdir(dir, { recursive: true });
@@ -108,4 +109,25 @@ export async function updateLibraryEntry(
     library[index] = { ...library[index], ...updates, sessionId };
     await saveLibrary(library);
   }
+}
+
+export async function cleanupExpiredSessions(): Promise<number> {
+  const library = await getLibrary();
+  const cutoff = Date.now() - SESSION_TTL_DAYS * 24 * 60 * 60 * 1000;
+  const expired = library.filter(
+    (b) => new Date(b.addedAt).getTime() < cutoff
+  );
+
+  for (const book of expired) {
+    await deleteSession(book.sessionId);
+  }
+
+  if (expired.length > 0) {
+    const remaining = library.filter(
+      (b) => new Date(b.addedAt).getTime() >= cutoff
+    );
+    await saveLibrary(remaining);
+  }
+
+  return expired.length;
 }

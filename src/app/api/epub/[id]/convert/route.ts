@@ -43,17 +43,18 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const { id: sessionId } = await params;
 
     if (!(await sessionExists(sessionId))) {
-      return NextResponse.json(
-        { error: "Session not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Session not found" }, { status: 404 });
     }
 
     const { outputFormat, fontSize, margin } = await request.json();
 
     if (!outputFormat || !SUPPORTED_CONVERT_FORMATS[outputFormat]) {
       return NextResponse.json(
-        { error: `Unsupported format. Supported: ${Object.keys(SUPPORTED_CONVERT_FORMATS).join(", ")}` },
+        {
+          error: `Unsupported format. Supported: ${Object.keys(
+            SUPPORTED_CONVERT_FORMATS
+          ).join(", ")}`,
+        },
         { status: 400 }
       );
     }
@@ -74,7 +75,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       args.push("--margin-right", String(margin));
     }
 
-    await execFileAsync(calibrePath, args, { timeout: 120000 });
+    await execFileAsync(calibrePath, args, {
+      timeout: 120000,
+      env: {
+        ...process.env,
+        TMPDIR: getSessionDir(sessionId),
+        HOME: getSessionDir(sessionId),
+      },
+    });
 
     const outputBuffer = await fs.readFile(outputPath);
 
@@ -92,7 +100,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     return new NextResponse(outputBuffer, {
       headers: {
         "Content-Type": mimeTypes[outputFormat] || "application/octet-stream",
-        "Content-Disposition": `attachment; filename="book-${sessionId.slice(0, 8)}.${outputFormat}"`,
+        "Content-Disposition": `attachment; filename="book-${sessionId.slice(
+          0,
+          8
+        )}.${outputFormat}"`,
       },
     });
   } catch (error) {
