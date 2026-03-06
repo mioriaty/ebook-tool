@@ -54,12 +54,6 @@ export interface EpubEditableFile {
   category: "xhtml" | "css" | "other";
 }
 
-export interface ConvertOptions {
-  outputFormat: string;
-  fontSize?: number;
-  margin?: number;
-}
-
 export interface SpellCheckResult {
   word: string;
   offset: number;
@@ -69,12 +63,3 @@ export interface SpellCheckResult {
   suggestions: string[];
   context: string;
 }
-
-export const SUPPORTED_CONVERT_FORMATS: Record<string, string> = {
-  azw3: "AZW3 (Kindle)",
-  mobi: "MOBI (Kindle Legacy)",
-  pdf: "PDF",
-  docx: "DOCX (Word)",
-  txt: "Plain Text",
-  htmlz: "HTML (Zipped)",
-};

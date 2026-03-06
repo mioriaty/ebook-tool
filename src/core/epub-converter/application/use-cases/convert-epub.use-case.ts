@@ -1,10 +1,15 @@
 import type { IEpubConverterRepository } from "../../domain/repositories/epub-converter.repository";
-import type { ConvertOptions } from "@/shared/types/epub";
 
 export class ConvertEpubUseCase {
   constructor(private readonly repository: IEpubConverterRepository) {}
 
-  execute(sessionId: string, options: ConvertOptions): Promise<Blob> {
-    return this.repository.convert(sessionId, options);
+  async execute(sessionId: string): Promise<Blob> {
+    // Fetch the raw epub bytes from the server download endpoint
+    const response = await fetch(`/api/epub/${sessionId}/download`);
+    if (!response.ok) {
+      throw new Error("Failed to fetch EPUB file");
+    }
+    const arrayBuffer = await response.arrayBuffer();
+    return this.repository.convertToTxt(arrayBuffer);
   }
 }

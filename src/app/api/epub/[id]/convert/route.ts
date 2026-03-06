@@ -8,7 +8,14 @@ import {
   getSessionDir,
   sessionExists,
 } from "@/libs/epub/session-store";
-import { SUPPORTED_CONVERT_FORMATS } from "@/shared/types/epub";
+const SUPPORTED_CONVERT_FORMATS: Record<string, string> = {
+  azw3: "AZW3 (Kindle)",
+  mobi: "MOBI (Kindle Legacy)",
+  pdf: "PDF",
+  docx: "DOCX (Word)",
+  txt: "Plain Text",
+  htmlz: "HTML (Zipped)",
+};
 
 const execFileAsync = promisify(execFile);
 
@@ -34,7 +41,7 @@ async function findCalibreConvert(): Promise<string> {
   }
 
   throw new Error(
-    "Calibre ebook-convert not found. Please install Calibre: brew install calibre"
+    "Conversion tool (ebook-convert) not found. Please ensure it is installed and in your PATH.",
   );
 }
 
@@ -52,10 +59,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json(
         {
           error: `Unsupported format. Supported: ${Object.keys(
-            SUPPORTED_CONVERT_FORMATS
+            SUPPORTED_CONVERT_FORMATS,
           ).join(", ")}`,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -63,7 +70,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const inputPath = getEpubPath(sessionId);
     const outputPath = path.join(
       getSessionDir(sessionId),
-      `output.${outputFormat}`
+      `output.${outputFormat}`,
     );
 
     const args = [inputPath, outputPath];
@@ -102,7 +109,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         "Content-Type": mimeTypes[outputFormat] || "application/octet-stream",
         "Content-Disposition": `attachment; filename="book-${sessionId.slice(
           0,
-          8
+          8,
         )}.${outputFormat}"`,
       },
     });
