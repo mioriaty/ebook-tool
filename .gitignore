@@ -42,3 +42,6 @@ next-env.d.ts
 
 # ebook sessions
 /tmp/ebook-sessions/
+
+# local deploy script (contains VPS info)
+deploy.sh
