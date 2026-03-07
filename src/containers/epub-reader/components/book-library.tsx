@@ -54,6 +54,12 @@ function ActionsCell({ book }: { book: EpubFile }) {
   const deleteMutation = useDeleteBook();
 
   const selectAndNavigate = (path: string) => {
+    console.log(
+      "[BookLibrary] selectAndNavigate:",
+      book.metadata.title,
+      "→",
+      path,
+    );
     setCurrentBook(book);
     router.push(path);
   };
@@ -120,6 +126,7 @@ function TitleCell({ book }: { book: EpubFile }) {
     <button
       className="text-left hover:underline font-medium"
       onClick={() => {
+        console.log("[TitleCell] click:", book.metadata.title);
         setCurrentBook(book);
         router.push("/reader");
       }}
@@ -236,7 +243,10 @@ function LibrarySkeleton() {
       <Skeleton className="h-10 w-64" />
       <div className="border rounded-md">
         {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="flex items-center gap-4 p-4 border-b last:border-0">
+          <div
+            key={i}
+            className="flex items-center gap-4 p-4 border-b last:border-0"
+          >
             <Skeleton className="h-4 w-48" />
             <Skeleton className="h-4 w-32" />
             <Skeleton className="h-4 w-16" />
@@ -326,7 +336,7 @@ export function BookLibrary() {
                       ? null
                       : flexRender(
                           header.column.columnDef.header,
-                          header.getContext()
+                          header.getContext(),
                         )}
                   </TableHead>
                 ))}
@@ -341,7 +351,7 @@ export function BookLibrary() {
                     <TableCell key={cell.id}>
                       {flexRender(
                         cell.column.columnDef.cell,
-                        cell.getContext()
+                        cell.getContext(),
                       )}
                     </TableCell>
                   ))}
