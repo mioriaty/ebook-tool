@@ -20,7 +20,7 @@ export function EpubUploader() {
   const handleFiles = useCallback(
     async (files: FileList | File[]) => {
       const epubFiles = Array.from(files).filter((f) =>
-        f.name.endsWith(".epub")
+        f.name.endsWith(".epub"),
       );
 
       if (epubFiles.length === 0) {
@@ -55,7 +55,7 @@ export function EpubUploader() {
 
       setUploadProgress(null);
     },
-    [uploadMutation]
+    [uploadMutation],
   );
 
   const handleDrop = useCallback(
@@ -66,7 +66,7 @@ export function EpubUploader() {
         handleFiles(e.dataTransfer.files);
       }
     },
-    [handleFiles]
+    [handleFiles],
   );
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -89,14 +89,14 @@ export function EpubUploader() {
       }
       e.target.value = "";
     },
-    [handleFiles]
+    [handleFiles],
   );
 
   const isUploading = uploadProgress !== null;
 
   return (
     <Card
-      className={`border-2 border-dashed transition-colors cursor-pointer ${
+      className={`border-2 border-dashed transition-colors cursor-pointer h-full ${
         isDragging
           ? "border-primary bg-primary/5"
           : "border-muted-foreground/25 hover:border-primary/50"
@@ -106,7 +106,7 @@ export function EpubUploader() {
       onDragLeave={handleDragLeave}
       onClick={isUploading ? undefined : handleClick}
     >
-      <CardContent className="flex flex-col items-center justify-center py-10 gap-3">
+      <CardContent className="flex flex-col items-center justify-center py-10 gap-3 h-full">
         <input
           ref={fileInputRef}
           type="file"
@@ -122,9 +122,7 @@ export function EpubUploader() {
               Uploading {uploadProgress.current} of {uploadProgress.total}...
             </p>
             <Progress
-              value={
-                (uploadProgress.current / uploadProgress.total) * 100
-              }
+              value={(uploadProgress.current / uploadProgress.total) * 100}
               className="w-48"
             />
           </>

@@ -20,7 +20,7 @@ export function CoverEditor({ sessionId }: CoverEditorProps) {
     async function loadCover() {
       try {
         const response = await fetch(
-          `/api/epub/${sessionId}/metadata?cover=true`
+          `/api/epub/${sessionId}/metadata?cover=true`,
         );
         const data = await response.json();
         if (data?.data) {
@@ -65,7 +65,7 @@ export function CoverEditor({ sessionId }: CoverEditorProps) {
         setIsUploading(false);
       }
     },
-    [sessionId]
+    [sessionId],
   );
 
   return (
@@ -86,7 +86,7 @@ export function CoverEditor({ sessionId }: CoverEditorProps) {
           }}
         />
 
-        <div className="w-full aspect-[2/3] bg-muted rounded-lg overflow-hidden flex items-center justify-center">
+        <div className="w-full aspect-2/3 bg-muted rounded-lg overflow-hidden flex items-center justify-center">
           {isLoading ? (
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           ) : coverUrl ? (
@@ -94,7 +94,7 @@ export function CoverEditor({ sessionId }: CoverEditorProps) {
             <img
               src={coverUrl}
               alt="Book cover"
-              className="w-full h-full object-cover"
+              className="w-full h-full object-contain"
             />
           ) : (
             <div className="flex flex-col items-center gap-2 text-muted-foreground">

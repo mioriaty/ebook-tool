@@ -21,6 +21,25 @@ export function useDeleteBook() {
   });
 }
 
+export function useDeleteManyBooks() {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, string[]>({
+    mutationFn: async (sessionIds: string[]) => {
+      await fetch("/api/epub/library", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionIds }),
+      }).then((res) => {
+        if (!res.ok) throw new Error(`Failed to delete selected books`);
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["epub-library"] });
+    },
+  });
+}
+
 export function useRefreshLibrary() {
   const queryClient = useQueryClient();
   return () => queryClient.invalidateQueries({ queryKey: ["epub-library"] });

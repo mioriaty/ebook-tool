@@ -14,20 +14,21 @@ export async function GET() {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const { sessionId } = await request.json();
+    const body = await request.json();
+    const sessionIds = body.sessionIds || body.sessionId;
 
-    if (!sessionId) {
+    if (!sessionIds || (Array.isArray(sessionIds) && sessionIds.length === 0)) {
       return NextResponse.json(
-        { error: "sessionId is required" },
-        { status: 400 }
+        { error: "sessionId or sessionIds array is required" },
+        { status: 400 },
       );
     }
 
-    await removeFromLibrary(sessionId);
+    await removeFromLibrary(sessionIds);
     return NextResponse.json({ success: true });
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "Failed to delete book";
+      error instanceof Error ? error.message : "Failed to delete book(s)";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

@@ -21,16 +21,14 @@ export function getEpubPath(sessionId: string): string {
 
 export async function saveEpub(
   sessionId: string,
-  buffer: Buffer
+  buffer: Buffer,
 ): Promise<void> {
   const dir = getSessionDir(sessionId);
   await ensureDir(dir);
   await fs.writeFile(getEpubPath(sessionId), buffer);
 }
 
-export async function loadEpubParser(
-  sessionId: string
-): Promise<EpubParser> {
+export async function loadEpubParser(sessionId: string): Promise<EpubParser> {
   const epubPath = getEpubPath(sessionId);
   const buffer = await fs.readFile(epubPath);
   const parser = new EpubParser(buffer.buffer as ArrayBuffer);
@@ -40,7 +38,7 @@ export async function loadEpubParser(
 
 export async function saveEpubFromParser(
   sessionId: string,
-  parser: EpubParser
+  parser: EpubParser,
 ): Promise<void> {
   const buffer = await parser.toBuffer();
   await fs.writeFile(getEpubPath(sessionId), buffer);
@@ -92,16 +90,22 @@ export async function addToLibrary(entry: EpubFile): Promise<void> {
   await saveLibrary(library);
 }
 
-export async function removeFromLibrary(sessionId: string): Promise<void> {
+export async function removeFromLibrary(
+  sessionIds: string | string[],
+): Promise<void> {
+  const idsToRemove = Array.isArray(sessionIds) ? sessionIds : [sessionIds];
+  if (idsToRemove.length === 0) return;
+
   const library = await getLibrary();
-  const filtered = library.filter((b) => b.sessionId !== sessionId);
+  const filtered = library.filter((b) => !idsToRemove.includes(b.sessionId));
   await saveLibrary(filtered);
-  await deleteSession(sessionId);
+
+  await Promise.all(idsToRemove.map((id) => deleteSession(id)));
 }
 
 export async function updateLibraryEntry(
   sessionId: string,
-  updates: Partial<EpubFile>
+  updates: Partial<EpubFile>,
 ): Promise<void> {
   const library = await getLibrary();
   const index = library.findIndex((b) => b.sessionId === sessionId);
@@ -114,9 +118,7 @@ export async function updateLibraryEntry(
 export async function cleanupExpiredSessions(): Promise<number> {
   const library = await getLibrary();
   const cutoff = Date.now() - SESSION_TTL_DAYS * 24 * 60 * 60 * 1000;
-  const expired = library.filter(
-    (b) => new Date(b.addedAt).getTime() < cutoff
-  );
+  const expired = library.filter((b) => new Date(b.addedAt).getTime() < cutoff);
 
   for (const book of expired) {
     await deleteSession(book.sessionId);
@@ -124,7 +126,7 @@ export async function cleanupExpiredSessions(): Promise<number> {
 
   if (expired.length > 0) {
     const remaining = library.filter(
-      (b) => new Date(b.addedAt).getTime() >= cutoff
+      (b) => new Date(b.addedAt).getTime() >= cutoff,
     );
     await saveLibrary(remaining);
   }

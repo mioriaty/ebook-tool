@@ -5,15 +5,17 @@ import { useRouter } from "next/navigation";
 import {
   type ColumnDef,
   type ColumnFiltersState,
+  type RowSelectionState,
   type SortingState,
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
+  getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
 import { useEpubContext } from "@/containers/shared/components/epub-context";
-import { useDeleteBook } from "../hooks/use-library";
+import { useDeleteBook, useDeleteManyBooks } from "../hooks/use-library";
 import {
   Table,
   TableBody,
@@ -24,6 +26,17 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -44,14 +57,19 @@ import {
   Library,
   ArrowUpDown,
   Search,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { EpubFile } from "@/shared/types/epub";
+
+const PAGE_SIZE = 15;
 
 function ActionsCell({ book }: { book: EpubFile }) {
   const router = useRouter();
   const { setCurrentBook, currentBook } = useEpubContext();
   const deleteMutation = useDeleteBook();
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   const selectAndNavigate = (path: string) => {
     setCurrentBook(book);
@@ -64,6 +82,7 @@ function ActionsCell({ book }: { book: EpubFile }) {
     }
     try {
       await deleteMutation.mutateAsync(book.sessionId);
+      setShowDeleteDialog(false);
       toast.success(`"${book.metadata.title}" removed`);
     } catch {
       toast.error("Failed to delete book");
@@ -71,43 +90,69 @@ function ActionsCell({ book }: { book: EpubFile }) {
   };
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-8 w-8">
-          <MoreHorizontal className="h-4 w-4" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => selectAndNavigate("/reader")}>
-          <BookOpen className="h-4 w-4 mr-2" />
-          Read
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => selectAndNavigate("/metadata")}>
-          <FileText className="h-4 w-4 mr-2" />
-          Edit Metadata
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => selectAndNavigate("/editor")}>
-          <PenTool className="h-4 w-4 mr-2" />
-          Edit Chapters
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => selectAndNavigate("/converter")}>
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Convert
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => selectAndNavigate("/spellcheck")}>
-          <SpellCheck className="h-4 w-4 mr-2" />
-          Spell Check
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem
-          onClick={handleDelete}
-          className="text-destructive focus:text-destructive"
-        >
-          <Trash2 className="h-4 w-4 mr-2" />
-          Remove
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon" className="h-8 w-8">
+            <MoreHorizontal className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={() => selectAndNavigate("/reader")}>
+            <BookOpen className="h-4 w-4 mr-2" />
+            Read
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => selectAndNavigate("/metadata")}>
+            <FileText className="h-4 w-4 mr-2" />
+            Edit Metadata
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => selectAndNavigate("/editor")}>
+            <PenTool className="h-4 w-4 mr-2" />
+            Edit Chapters
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => selectAndNavigate("/converter")}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Convert
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => selectAndNavigate("/spellcheck")}>
+            <SpellCheck className="h-4 w-4 mr-2" />
+            Spell Check
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            onClick={(e) => {
+              e.preventDefault();
+              setShowDeleteDialog(true);
+            }}
+            className="text-destructive focus:text-destructive"
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Remove
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete &quot;
+              {book.metadata.title}&quot; from your library.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteMutation.isPending ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
 
@@ -136,12 +181,34 @@ function TitleCell({ book }: { book: EpubFile }) {
 
 const columns: ColumnDef<EpubFile>[] = [
   {
+    id: "select",
+    header: ({ table }) => (
+      <Checkbox
+        checked={
+          table.getIsAllPageRowsSelected() ||
+          (table.getIsSomePageRowsSelected() && "indeterminate")
+        }
+        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+        aria-label="Select all"
+      />
+    ),
+    cell: ({ row }) => (
+      <Checkbox
+        checked={row.getIsSelected()}
+        onCheckedChange={(value) => row.toggleSelected(!!value)}
+        aria-label="Select row"
+        onClick={(e) => e.stopPropagation()}
+      />
+    ),
+    enableSorting: false,
+    enableHiding: false,
+  },
+  {
     accessorFn: (row) => row.metadata.title,
     id: "title",
     header: ({ column }) => (
       <Button
         variant="ghost"
-        className="-ml-3"
         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
       >
         Title
@@ -156,7 +223,6 @@ const columns: ColumnDef<EpubFile>[] = [
     header: ({ column }) => (
       <Button
         variant="ghost"
-        className="-ml-3"
         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
       >
         Author
@@ -190,7 +256,6 @@ const columns: ColumnDef<EpubFile>[] = [
     header: ({ column }) => (
       <Button
         variant="ghost"
-        className="-ml-3"
         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
       >
         Chapters
@@ -206,7 +271,6 @@ const columns: ColumnDef<EpubFile>[] = [
     header: ({ column }) => (
       <Button
         variant="ghost"
-        className="-ml-3"
         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
       >
         Added
@@ -254,9 +318,18 @@ function LibrarySkeleton() {
 
 export function BookLibrary() {
   "use no memo";
-  const { library, isLibraryLoading } = useEpubContext();
+  const { library, isLibraryLoading, currentBook, setCurrentBook } =
+    useEpubContext();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+  const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
+  const [pagination, setPagination] = useState({
+    pageIndex: 0,
+    pageSize: PAGE_SIZE,
+  });
+
+  const deleteManyMutation = useDeleteManyBooks();
 
   const table = useReactTable({
     data: library,
@@ -264,10 +337,35 @@ export function BookLibrary() {
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
     onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
-    state: { sorting, columnFilters },
+    onColumnFiltersChange: (updater) => {
+      setColumnFilters(updater);
+      setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+    },
+    onPaginationChange: setPagination,
+    onRowSelectionChange: setRowSelection,
+    state: { sorting, columnFilters, pagination, rowSelection },
   });
+
+  const selectedRows = table.getFilteredSelectedRowModel().rows;
+  const selectedCount = selectedRows.length;
+
+  const handleDeleteSelected = async () => {
+    const sessionIds = selectedRows.map((r) => r.original.sessionId);
+    // Clear active book if it's among deleted
+    if (currentBook && sessionIds.includes(currentBook.sessionId)) {
+      setCurrentBook(null);
+    }
+    try {
+      await deleteManyMutation.mutateAsync(sessionIds);
+      setRowSelection({});
+      setShowBulkDeleteDialog(false);
+      toast.success(`${sessionIds.length} book(s) removed`);
+    } catch {
+      toast.error("Failed to delete selected books");
+    }
+  };
 
   if (isLibraryLoading) {
     return <LibrarySkeleton />;
@@ -282,6 +380,9 @@ export function BookLibrary() {
       </div>
     );
   }
+
+  const totalPages = table.getPageCount();
+  const currentPage = table.getState().pagination.pageIndex + 1;
 
   return (
     <div className="space-y-4">
@@ -316,6 +417,46 @@ export function BookLibrary() {
             className="pl-9"
           />
         </div>
+        {selectedCount > 0 && (
+          <>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => setShowBulkDeleteDialog(true)}
+              disabled={deleteManyMutation.isPending}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete {selectedCount} selected
+            </Button>
+
+            <AlertDialog
+              open={showBulkDeleteDialog}
+              onOpenChange={setShowBulkDeleteDialog}
+            >
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete{" "}
+                    {selectedCount} selected{" "}
+                    {selectedCount === 1 ? "book" : "books"} from your library.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleDeleteSelected}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    {deleteManyMutation.isPending
+                      ? "Deleting..."
+                      : "Delete Selected"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </>
+        )}
       </div>
 
       <div className="rounded-md border">
@@ -339,7 +480,10 @@ export function BookLibrary() {
           <TableBody>
             {table.getRowModel().rows.length ? (
               table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id}>
+                <TableRow
+                  key={row.id}
+                  data-state={row.getIsSelected() && "selected"}
+                >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
                       {flexRender(
@@ -362,6 +506,38 @@ export function BookLibrary() {
             )}
           </TableBody>
         </Table>
+      </div>
+
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">
+          {selectedCount > 0
+            ? `${selectedCount} of ${table.getFilteredRowModel().rows.length} row(s) selected`
+            : totalPages > 1
+              ? `Page ${currentPage} of ${totalPages}`
+              : null}
+        </p>
+        {totalPages > 1 && (
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+            >
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+            >
+              Next
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );
