@@ -4,8 +4,8 @@ import {
   createContext,
   useContext,
   useState,
+  useMemo,
   useCallback,
-  useEffect,
   type ReactNode,
 } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -26,13 +26,15 @@ const EpubContext = createContext<EpubContextValue | null>(null);
 const SESSION_STORAGE_KEY = "currentBookSessionId";
 
 export function EpubProvider({ children }: { children: ReactNode }) {
-  const [currentBook, setCurrentBookState] = useState<EpubFile | null>(null);
-  const queryClient = useQueryClient();
-
-  console.log(
-    "[EpubProvider] render — currentBook:",
-    currentBook?.metadata?.title ?? null,
+  const [currentBookOverride, setCurrentBookState] = useState<EpubFile | null>(
+    null,
   );
+  const [savedSessionId, setSavedSessionId] = useState<string | null>(() =>
+    typeof window !== "undefined"
+      ? sessionStorage.getItem(SESSION_STORAGE_KEY)
+      : null,
+  );
+  const queryClient = useQueryClient();
 
   const { data: library = [], isLoading: isLibraryLoading } = useQuery<
     EpubFile[]
@@ -41,40 +43,21 @@ export function EpubProvider({ children }: { children: ReactNode }) {
     queryFn: () => fetchClient.get<EpubFile[]>("/api/epub/library"),
   });
 
-  // Restore currentBook từ sessionStorage sau khi library load xong
-  useEffect(() => {
-    console.log(
-      "[EpubProvider] useEffect restore — isLibraryLoading:",
-      isLibraryLoading,
-      "library.length:",
-      library.length,
-      "currentBook:",
-      currentBook?.metadata?.title ?? null,
-    );
-    if (currentBook || isLibraryLoading || library.length === 0) return;
-    const savedId = sessionStorage.getItem(SESSION_STORAGE_KEY);
-    console.log("[EpubProvider] sessionStorage savedId:", savedId);
-    if (!savedId) return;
-    const found = library.find((b) => b.sessionId === savedId);
-    console.log(
-      "[EpubProvider] found book to restore:",
-      found?.metadata?.title ?? null,
-    );
-    if (found) setCurrentBookState(found);
-  }, [library, isLibraryLoading, currentBook]);
+  // Derive currentBook: prefer explicit override, otherwise restore from sessionStorage
+  const currentBook = useMemo<EpubFile | null>(() => {
+    if (currentBookOverride) return currentBookOverride;
+    if (!savedSessionId || isLibraryLoading) return null;
+    return library.find((b) => b.sessionId === savedSessionId) ?? null;
+  }, [currentBookOverride, savedSessionId, library, isLibraryLoading]);
 
   const setCurrentBook = useCallback((book: EpubFile | null) => {
-    console.log(
-      "[EpubProvider] setCurrentBook:",
-      book?.metadata?.title ?? null,
-    );
     setCurrentBookState(book);
     if (book) {
       sessionStorage.setItem(SESSION_STORAGE_KEY, book.sessionId);
-      console.log("[EpubProvider] sessionStorage set:", book.sessionId);
+      setSavedSessionId(book.sessionId);
     } else {
       sessionStorage.removeItem(SESSION_STORAGE_KEY);
-      console.log("[EpubProvider] sessionStorage cleared");
+      setSavedSessionId(null);
     }
   }, []);
 

@@ -54,12 +54,6 @@ function ActionsCell({ book }: { book: EpubFile }) {
   const deleteMutation = useDeleteBook();
 
   const selectAndNavigate = (path: string) => {
-    console.log(
-      "[BookLibrary] selectAndNavigate:",
-      book.metadata.title,
-      "→",
-      path,
-    );
     setCurrentBook(book);
     router.push(path);
   };
@@ -126,7 +120,6 @@ function TitleCell({ book }: { book: EpubFile }) {
     <button
       className="text-left hover:underline font-medium"
       onClick={() => {
-        console.log("[TitleCell] click:", book.metadata.title);
         setCurrentBook(book);
         router.push("/reader");
       }}
