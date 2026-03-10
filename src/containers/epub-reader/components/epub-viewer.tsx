@@ -15,13 +15,14 @@ import { ChevronLeft, ChevronRight, Minus, Plus, Loader2 } from "lucide-react";
 
 const ReactReader = dynamic(
   () => import("react-reader").then((mod) => mod.ReactReader),
-  { ssr: false }
+  { ssr: false },
 );
 
 const FONT_SIZES = ["80%", "90%", "100%", "110%", "120%", "140%", "160%"];
 
 export function EpubViewer() {
   const { currentBook } = useEpubContext();
+  const [prevSessionId, setPrevSessionId] = useState(currentBook?.sessionId);
   const [location, setLocation] = useState<string | number>(0);
   const [fontSize, setFontSize] = useState("100%");
   const [epubData, setEpubData] = useState<ArrayBuffer | null>(null);
@@ -32,15 +33,19 @@ export function EpubViewer() {
     themes: { fontSize: (size: string) => void };
   } | null>(null);
 
+  if (currentBook?.sessionId !== prevSessionId) {
+    setPrevSessionId(currentBook?.sessionId);
+    setEpubData(null);
+    setIsLoading(!!currentBook);
+    setLocation(0);
+  }
+
   useEffect(() => {
     if (!currentBook) {
-      setEpubData(null);
       return;
     }
 
     let cancelled = false;
-    setIsLoading(true);
-    setLocation(0);
 
     fetch(`/api/epub/${currentBook.sessionId}/download`)
       .then((res) => {
@@ -48,18 +53,22 @@ export function EpubViewer() {
         return res.arrayBuffer();
       })
       .then((buffer) => {
-        if (!cancelled) setEpubData(buffer);
+        if (!cancelled) {
+          setEpubData(buffer);
+          setIsLoading(false);
+        }
       })
       .catch(() => {
-        if (!cancelled) setEpubData(null);
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoading(false);
+        if (!cancelled) {
+          setEpubData(null);
+          setIsLoading(false);
+        }
       });
 
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentBook?.sessionId]);
 
   const handleLocationChange = useCallback((loc: string) => {
@@ -72,7 +81,7 @@ export function EpubViewer() {
       setRendition(rend);
       rend.themes.fontSize(fontSize);
     },
-    [fontSize]
+    [fontSize],
   );
 
   const changeFontSize = useCallback(
@@ -86,7 +95,7 @@ export function EpubViewer() {
       setFontSize(newSize);
       rendition?.themes.fontSize(newSize);
     },
-    [fontSize, rendition]
+    [fontSize, rendition],
   );
 
   if (!currentBook) {
@@ -118,18 +127,10 @@ export function EpubViewer() {
     <div className="flex flex-col h-[calc(100vh-12rem)]">
       <div className="flex items-center justify-between border-b px-4 py-2">
         <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => rendition?.prev()}
-          >
+          <Button variant="ghost" size="icon" onClick={() => rendition?.prev()}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => rendition?.next()}
-          >
+          <Button variant="ghost" size="icon" onClick={() => rendition?.next()}>
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>

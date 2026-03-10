@@ -1,4 +1,5 @@
 "use client";
+"use no memo";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -59,9 +60,12 @@ import {
   Search,
   ChevronLeft,
   ChevronRight,
+  Send,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { EpubFile } from "@/shared/types/epub";
+import { SendToKindleDialog } from "@/containers/kindle/components/send-to-kindle-dialog";
+import { BulkSendToKindleDialog } from "@/containers/kindle/components/bulk-send-to-kindle-dialog";
 
 const PAGE_SIZE = 15;
 
@@ -70,6 +74,7 @@ function ActionsCell({ book }: { book: EpubFile }) {
   const { setCurrentBook, currentBook } = useEpubContext();
   const deleteMutation = useDeleteBook();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showKindleDialog, setShowKindleDialog] = useState(false);
 
   const selectAndNavigate = (path: string) => {
     setCurrentBook(book);
@@ -119,6 +124,11 @@ function ActionsCell({ book }: { book: EpubFile }) {
             Spell Check
           </DropdownMenuItem>
           <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => setShowKindleDialog(true)}>
+            <Send className="h-4 w-4 mr-2" />
+            Send to Kindle
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
           <DropdownMenuItem
             onClick={(e) => {
               e.preventDefault();
@@ -152,6 +162,12 @@ function ActionsCell({ book }: { book: EpubFile }) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <SendToKindleDialog
+        book={book}
+        open={showKindleDialog}
+        onOpenChange={setShowKindleDialog}
+      />
     </>
   );
 }
@@ -317,13 +333,13 @@ function LibrarySkeleton() {
 }
 
 export function BookLibrary() {
-  "use no memo";
   const { library, isLibraryLoading, currentBook, setCurrentBook } =
     useEpubContext();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
+  const [showBulkSendDialog, setShowBulkSendDialog] = useState(false);
   const [pagination, setPagination] = useState({
     pageIndex: 0,
     pageSize: PAGE_SIZE,
@@ -420,6 +436,14 @@ export function BookLibrary() {
         {selectedCount > 0 && (
           <>
             <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowBulkSendDialog(true)}
+            >
+              <Send className="h-4 w-4 mr-2" />
+              Send {selectedCount} to Kindle
+            </Button>
+            <Button
               variant="destructive"
               size="sm"
               onClick={() => setShowBulkDeleteDialog(true)}
@@ -428,6 +452,12 @@ export function BookLibrary() {
               <Trash2 className="h-4 w-4 mr-2" />
               Delete {selectedCount} selected
             </Button>
+
+            <BulkSendToKindleDialog
+              books={selectedRows.map((r) => r.original)}
+              open={showBulkSendDialog}
+              onOpenChange={setShowBulkSendDialog}
+            />
 
             <AlertDialog
               open={showBulkDeleteDialog}

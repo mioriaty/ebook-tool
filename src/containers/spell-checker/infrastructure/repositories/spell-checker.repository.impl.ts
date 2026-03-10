@@ -40,12 +40,12 @@ const MAX_UNIQUE_WORDS = 500;
 export class SpellCheckerRepositoryImpl implements ISpellCheckerRepository {
   async checkSpelling(
     sessionId: string,
-    language = "vi"
+    language = "vi",
   ): Promise<SpellCheckResult[]> {
     const dictUrl = DICT_URLS[language];
     if (!dictUrl) {
       throw new Error(
-        `No local dictionary available for language: "${language}". Currently supported: ${Object.keys(DICT_URLS).join(", ")}.`
+        `No local dictionary available for language: "${language}". Currently supported: ${Object.keys(DICT_URLS).join(", ")}.`,
       );
     }
 
@@ -60,7 +60,7 @@ export class SpellCheckerRepositoryImpl implements ISpellCheckerRepository {
 
     outer: for (const file of xhtmlFiles) {
       const html = await fetchClient.get<string>(
-        `/api/epub/${sessionId}/chapters/${encodeURIComponent(file.href)}`
+        `/api/epub/${sessionId}/chapters/${encodeURIComponent(file.href)}`,
       );
 
       const text = stripHtmlTags(html);
@@ -92,6 +92,7 @@ export class SpellCheckerRepositoryImpl implements ISpellCheckerRepository {
     return results;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async getSuggestions(_word: string, _language: string): Promise<string[]> {
     return [];
   }

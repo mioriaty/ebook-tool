@@ -1,4 +1,4 @@
-import type { EpubFile, EpubChapter, EpubToc } from "@/shared/types/epub";
+import type { EpubFile } from "@/shared/types/epub";
 
 export interface IEpubReaderRepository {
   uploadEpub(file: File): Promise<EpubFile>;
