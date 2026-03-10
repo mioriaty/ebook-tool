@@ -12,7 +12,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ChevronLeft, ChevronRight, Minus, Plus, Loader2 } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Minus,
+  Plus,
+  Loader2,
+  Play,
+  Pause,
+  Square,
+} from "lucide-react";
+
+import { useTextToSpeech } from "../hooks/use-text-to-speech";
 
 const ReactReader = dynamic(
   () => import("react-reader").then((mod) => mod.ReactReader),
@@ -33,6 +44,17 @@ export function EpubViewer() {
   const [epubData, setEpubData] = useState<ArrayBuffer | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const renditionRef = useRef<Rendition | null>(null);
+  const {
+    isPlaying,
+    isPaused,
+    togglePlayPause,
+    stop,
+    language,
+    changeLanguage,
+    voices,
+    selectedVoice,
+    setSelectedVoice,
+  } = useTextToSpeech(renditionRef);
 
   if (currentBook?.sessionId !== prevSessionId) {
     setPrevSessionId(currentBook?.sessionId);
@@ -148,6 +170,69 @@ export function EpubViewer() {
         </h2>
 
         <div className="flex items-center gap-2">
+          <Select
+            value={language}
+            onValueChange={(val: "en" | "vi") => changeLanguage(val)}
+          >
+            <SelectTrigger className="w-[110px] h-8 text-xs">
+              <SelectValue placeholder="Ngôn ngữ" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="vi">Tiếng Việt</SelectItem>
+              <SelectItem value="en">English</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {voices.length > 0 && selectedVoice && (
+            <Select
+              value={selectedVoice.voiceURI}
+              onValueChange={(val) => {
+                const voice = voices.find((v) => v.voiceURI === val);
+                if (voice) setSelectedVoice(voice);
+              }}
+            >
+              <SelectTrigger className="w-[140px] h-8 text-xs truncate">
+                <SelectValue placeholder="Giọng đọc">
+                  <span className="truncate">{selectedVoice.name}</span>
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {voices
+                  .filter((v) => v.lang.startsWith(language))
+                  .map((voice) => (
+                    <SelectItem key={voice.voiceURI} value={voice.voiceURI}>
+                      {voice.name}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+          )}
+
+          {isPlaying && (
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8 text-destructive border-destructive hover:bg-destructive hover:text-white"
+              onClick={stop}
+              title="Dừng đọc"
+            >
+              <Square className="h-4 w-4 fill-current" />
+            </Button>
+          )}
+          <Button
+            variant={isPlaying ? "default" : "secondary"}
+            size="icon"
+            className="h-8 w-8"
+            onClick={togglePlayPause}
+            title={isPlaying && !isPaused ? "Tạm dừng" : "Đọc sách"}
+          >
+            {isPlaying && !isPaused ? (
+              <Pause className="h-4 w-4 fill-current" />
+            ) : (
+              <Play className="h-4 w-4 fill-current ml-0.5" />
+            )}
+          </Button>
+
           <Button
             variant="ghost"
             size="icon"
