@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import { useEpubContext } from "@/containers/shared/components/epub-context";
+import type { Rendition } from "epubjs";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -20,24 +21,24 @@ const ReactReader = dynamic(
 
 const FONT_SIZES = ["80%", "90%", "100%", "110%", "120%", "140%", "160%"];
 
+const EPUB_OPTIONS = {
+  allowScriptedContent: true,
+};
+
 export function EpubViewer() {
   const { currentBook } = useEpubContext();
   const [prevSessionId, setPrevSessionId] = useState(currentBook?.sessionId);
-  const [location, setLocation] = useState<string | number>(0);
+  const [location, setLocation] = useState<string | number>();
   const [fontSize, setFontSize] = useState("100%");
   const [epubData, setEpubData] = useState<ArrayBuffer | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [rendition, setRendition] = useState<{
-    prev: () => void;
-    next: () => void;
-    themes: { fontSize: (size: string) => void };
-  } | null>(null);
+  const renditionRef = useRef<Rendition | null>(null);
 
   if (currentBook?.sessionId !== prevSessionId) {
     setPrevSessionId(currentBook?.sessionId);
     setEpubData(null);
     setIsLoading(!!currentBook);
-    setLocation(0);
+    setLocation(undefined);
   }
 
   useEffect(() => {
@@ -76,9 +77,8 @@ export function EpubViewer() {
   }, []);
 
   const handleRendition = useCallback(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (rend: any) => {
-      setRendition(rend);
+    (rend: Rendition) => {
+      renditionRef.current = rend;
       rend.themes.fontSize(fontSize);
     },
     [fontSize],
@@ -93,9 +93,9 @@ export function EpubViewer() {
           : Math.max(currentIdx - 1, 0);
       const newSize = FONT_SIZES[newIdx];
       setFontSize(newSize);
-      rendition?.themes.fontSize(newSize);
+      renditionRef.current?.themes.fontSize(newSize);
     },
-    [fontSize, rendition],
+    [fontSize],
   );
 
   if (!currentBook) {
@@ -127,10 +127,18 @@ export function EpubViewer() {
     <div className="flex flex-col h-[calc(100vh-12rem)]">
       <div className="flex items-center justify-between border-b px-4 py-2">
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={() => rendition?.prev()}>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => renditionRef.current?.prev()}
+          >
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" onClick={() => rendition?.next()}>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => renditionRef.current?.next()}
+          >
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
@@ -151,7 +159,7 @@ export function EpubViewer() {
             value={fontSize}
             onValueChange={(val) => {
               setFontSize(val);
-              rendition?.themes.fontSize(val);
+              renditionRef.current?.themes.fontSize(val);
             }}
           >
             <SelectTrigger className="w-20 h-8">
@@ -178,12 +186,10 @@ export function EpubViewer() {
       <div className="flex-1 relative">
         <ReactReader
           url={epubData}
-          location={location}
+          location={location as string | number}
           locationChanged={handleLocationChange}
           getRendition={handleRendition}
-          epubOptions={{
-            allowScriptedContent: true,
-          }}
+          epubOptions={EPUB_OPTIONS}
         />
       </div>
     </div>
