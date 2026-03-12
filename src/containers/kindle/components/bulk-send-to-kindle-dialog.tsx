@@ -115,7 +115,7 @@ export function BulkSendToKindleDialog({
         onComplete?.();
       } else if (successCount > 0 && errorCount > 0) {
         toast.warning(
-          `Hoàn tất, nhưng có ${errorCount} sách bị lỗi trong quá trình gửi.`,
+          `Hoàn tất, nhưng có ${errorCount} sách bị lỗi trong quá trình gửi.`
         );
         onComplete?.();
       } else if (successCount === 0 && errorCount > 0) {
@@ -230,6 +230,26 @@ export function BulkSendToKindleDialog({
               </strong>{" "}
               vào danh sách <i>Approved Personal Document E-mail List</i>.
             </p>
+            <p>Các bước thực hiện:</p>
+            <ol className="list-decimal list-inside space-y-1">
+              <li>
+                Truy cập vào <strong>Manage Your Content and Devices</strong>.
+              </li>
+              <li>
+                Trong mục <strong>Preferences</strong>, cuộn xuống đến{" "}
+                <strong>Personal Document Settings</strong>.
+              </li>
+              <li>
+                Chọn <strong>Approved Personal Document Email List</strong> và
+                kiểm tra xem đã có địa chỉ email của bạn chưa. Nếu không thấy
+                địa chỉ email của bạn, chọn{" "}
+                <strong>Add a new e-mail address</strong>.
+              </li>
+              <li>
+                Nhập địa chỉ email bạn muốn thêm, đảm bảo địa chỉ đầy đủ và hợp
+                lệ, sau đó chọn <strong>Add Address</strong>.
+              </li>
+            </ol>
           </div>
         </div>
         <DialogFooter>

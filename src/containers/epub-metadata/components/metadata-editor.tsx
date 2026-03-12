@@ -1,50 +1,112 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import { useEpubContext } from "@/containers/shared/components/epub-context";
 import { useUpdateMetadata } from "../hooks/use-metadata";
 import { CoverEditor } from "./cover-editor";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Save, Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import type { EpubMetadata } from "@/shared/types/epub";
 
+const metadataSchema = z.object({
+  title: z.string().min(1, { message: "Title is required" }),
+  creators: z.string().optional(), // We'll handle comma-separated strings
+  language: z.string().optional(),
+  date: z.string().optional(),
+  publisher: z.string().optional(),
+  description: z.string().optional(),
+  subjects: z.string().optional(), // We'll handle comma-separated strings
+  rights: z.string().optional(),
+});
+
+type MetadataFormValues = z.infer<typeof metadataSchema>;
+
 export function MetadataEditor() {
   const { currentBook, setCurrentBook } = useEpubContext();
-  const [formData, setFormData] = useState<Partial<EpubMetadata>>({});
   const updateMetadata = useUpdateMetadata(currentBook?.sessionId || "");
 
+  const form = useForm<MetadataFormValues>({
+    // @ts-expect-error Zod version mismatch with @hookform/resolvers
+    resolver: zodResolver(metadataSchema),
+    defaultValues: {
+      title: "",
+      creators: "",
+      language: "",
+      date: "",
+      publisher: "",
+      description: "",
+      subjects: "",
+      rights: "",
+    },
+  });
+
+  // Reset form when current book changes
   useEffect(() => {
     if (currentBook?.metadata) {
-      setFormData({
-        title: currentBook.metadata.title,
-        creators: currentBook.metadata.creators,
-        language: currentBook.metadata.language,
-        publisher: currentBook.metadata.publisher,
-        date: currentBook.metadata.date,
-        description: currentBook.metadata.description,
-        subjects: currentBook.metadata.subjects,
-        rights: currentBook.metadata.rights,
+      form.reset({
+        title: currentBook.metadata.title || "",
+        creators: currentBook.metadata.creators?.join(", ") || "",
+        language: currentBook.metadata.language || "",
+        date: currentBook.metadata.date || "",
+        publisher: currentBook.metadata.publisher || "",
+        description: currentBook.metadata.description || "",
+        subjects: currentBook.metadata.subjects?.join(", ") || "",
+        rights: currentBook.metadata.rights || "",
       });
     }
-  }, [currentBook]);
+  }, [currentBook, form]);
 
   if (!currentBook) {
     return (
-      <div className="text-center text-muted-foreground py-12">
+      <div
+        className="text-center text-muted-foreground py-12"
+        role="status"
+        aria-live="polite"
+      >
         Upload a book first to edit its metadata.
       </div>
     );
   }
 
-  const handleSave = async () => {
+  const onSubmit = async (data: MetadataFormValues) => {
     try {
-      const result = await updateMetadata.mutateAsync(formData);
+      const parsedData: Partial<EpubMetadata> = {
+        title: data.title,
+        creators:
+          data.creators
+            ?.split(",")
+            .map((s) => s.trim())
+            .filter(Boolean) || [],
+        language: data.language,
+        date: data.date,
+        publisher: data.publisher,
+        description: data.description,
+        subjects:
+          data.subjects
+            ?.split(",")
+            .map((s) => s.trim())
+            .filter(Boolean) || [],
+        rights: data.rights,
+      };
+
+      const result = await updateMetadata.mutateAsync(parsedData);
       setCurrentBook({
         ...currentBook,
         metadata: { ...currentBook.metadata, ...result },
@@ -62,135 +124,166 @@ export function MetadataEditor() {
     a.click();
   };
 
-  const updateField = (field: string, value: string | string[]) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-  };
-
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Metadata Editor</h1>
-          <p className="text-muted-foreground mt-1">
-            Edit book information and cover image
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={handleDownload}>
-            <Download className="h-4 w-4 mr-2" />
-            Download EPUB
-          </Button>
-          <Button onClick={handleSave} disabled={updateMetadata.isPending}>
-            {updateMetadata.isPending ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Save className="h-4 w-4 mr-2" />
-            )}
-            Save Changes
-          </Button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-1">
-          <CoverEditor sessionId={currentBook.sessionId} />
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">Metadata Editor</h1>
+            <p className="text-muted-foreground mt-1">
+              Edit book information and cover image
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button type="button" variant="outline" onClick={handleDownload}>
+              <Download className="h-4 w-4 mr-2" />
+              Download EPUB
+            </Button>
+            <Button type="submit" disabled={updateMetadata.isPending}>
+              {updateMetadata.isPending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4 mr-2" />
+              )}
+              Save Changes
+            </Button>
+          </div>
         </div>
 
-        <Card className="md:col-span-2">
-          <CardHeader>
-            <CardTitle>Book Information</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="title">Title</Label>
-              <Input
-                id="title"
-                value={formData.title || ""}
-                onChange={(e) => updateField("title", e.target.value)}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="md:col-span-1">
+            <CoverEditor sessionId={currentBook.sessionId} />
+          </div>
+
+          <Card className="md:col-span-2">
+            <CardHeader>
+              <CardTitle>Book Information</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <FormField
+                control={form.control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Title</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Book title" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="creators">Authors (comma separated)</Label>
-              <Input
-                id="creators"
-                value={formData.creators?.join(", ") || ""}
-                onChange={(e) =>
-                  updateField(
-                    "creators",
-                    e.target.value.split(",").map((s) => s.trim())
-                  )
-                }
+              <FormField
+                control={form.control}
+                name="creators"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Authors</FormLabel>
+                    <FormControl>
+                      <Input placeholder="John Doe, Jane Smith" {...field} />
+                    </FormControl>
+                    <FormDescription>Comma separated</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="language">Language</Label>
-                <Input
-                  id="language"
-                  value={formData.language || ""}
-                  onChange={(e) => updateField("language", e.target.value)}
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="language"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Language</FormLabel>
+                      <FormControl>
+                        <Input placeholder="en" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="date"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Date</FormLabel>
+                      <FormControl>
+                        <Input placeholder="YYYY-MM-DD" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="date">Date</Label>
-                <Input
-                  id="date"
-                  value={formData.date || ""}
-                  onChange={(e) => updateField("date", e.target.value)}
-                />
-              </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="publisher">Publisher</Label>
-              <Input
-                id="publisher"
-                value={formData.publisher || ""}
-                onChange={(e) => updateField("publisher", e.target.value)}
+              <FormField
+                control={form.control}
+                name="publisher"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Publisher</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Publisher name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
 
-            <Separator />
+              <Separator />
 
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                rows={4}
-                value={formData.description || ""}
-                onChange={(e) => updateField("description", e.target.value)}
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        rows={4}
+                        placeholder="Book description..."
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="subjects">
-                Subjects / Tags (comma separated)
-              </Label>
-              <Input
-                id="subjects"
-                value={formData.subjects?.join(", ") || ""}
-                onChange={(e) =>
-                  updateField(
-                    "subjects",
-                    e.target.value.split(",").map((s) => s.trim())
-                  )
-                }
+              <FormField
+                control={form.control}
+                name="subjects"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Subjects / Tags</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Fiction, Fantasy, Magic" {...field} />
+                    </FormControl>
+                    <FormDescription>Comma separated</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="rights">Rights</Label>
-              <Input
-                id="rights"
-                value={formData.rights || ""}
-                onChange={(e) => updateField("rights", e.target.value)}
+              <FormField
+                control={form.control}
+                name="rights"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Rights</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Copyright © 2024" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+            </CardContent>
+          </Card>
+        </div>
+      </form>
+    </Form>
   );
 }
